@@ -8,7 +8,7 @@ This API is optional and keeps the legacy HTML/CSS and modules in place. It prov
 - `POST /local-api/v1/accounts/register` with JSON `{ "username": "retro_user", "email": "retro@example.com", "password": "at-least-8-characters", "display_name": "Retro User" }`.
 - `POST /local-api/v1/accounts/login` with JSON `{ "username": "retro_user", "password": "at-least-8-characters" }`; username or email can be used.
 - Usernames are normalized to lowercase and limited to 3–24 letters, digits, and underscores. Passwords must be 8–256 characters.
-- Email addresses and usernames are unique. Passwords are stored as salted scrypt hashes, never as plaintext. Successful registration/login sets the existing HttpOnly `yt2009_local_session` cookie, so comments, ratings, favorites, playlists, subscriptions, and QuickList use that account identity.
+- Email addresses and usernames are unique. Passwords are stored as salted scrypt hashes, never as plaintext. Successful verified login sets the existing HttpOnly `yt2009_local_session` cookie, so comments, ratings, favorites, playlists, subscriptions, and QuickList use that account identity.
 - `GET /local-api/v1/accounts/me` returns the signed-in profile; `PATCH /local-api/v1/accounts/me` updates `display_name`, `bio` (up to 500 characters), and `avatar_url` (HTTPS or a same-origin path). `POST /local-api/v1/accounts/logout` clears the cookie. `GET /local-api/v1/profiles/:username` returns a public profile JSON document and public playlists. `GET /u/:username` renders a simple public profile page in the retro style.
 - Older guest profiles remain guest profiles; they are not automatically linked to a new account. Guest data is not merged into an account.
 
