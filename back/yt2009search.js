@@ -269,9 +269,12 @@ module.exports = {
                             20,
                             Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20)
                         );
-                        if (local.videos.length) {
-                            local.videos.push({ type: "metadata", resultCount: local.total });
-                            callback(local.videos);
+                        const localResults = local.videos.concat(
+                            require("./yt2009localapi").searchChannels(query, 20)
+                        );
+                        if (localResults.length) {
+                            localResults.push({ type: "metadata", resultCount: local.total });
+                            callback(localResults);
                             return;
                         }
                     } catch (localError) {
@@ -328,7 +331,9 @@ module.exports = {
                         20,
                         Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20)
                     );
-                    const localResults = local.videos;
+                    const localResults = local.videos.concat(
+                        require("./yt2009localapi").searchChannels(query, 20)
+                    );
                     localResults.push({ type: "metadata", resultCount: local.total });
                     callback(localResults);
                 } catch (localError) {
