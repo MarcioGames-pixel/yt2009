@@ -51,6 +51,10 @@
         var note = element("div", "Local community for this yt2009 server.", "");
         note.style.cssText = "color:#666;margin-bottom:8px";
         panel.appendChild(note);
+        var accountLink = element("a", "Sign in or create account");
+        accountLink.href = "/local-account";
+        accountLink.style.cssText = "display:inline-block;margin:0 0 10px;padding:5px 9px;border:1px solid #aaa;background:#fff;color:#03c;text-decoration:none";
+        panel.appendChild(accountLink);
 
         var actions = element("div");
         actions.style.cssText = "display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px";
@@ -217,6 +221,10 @@
         var h = element("h2", title);
         h.style.cssText = "font:bold 16px Arial,sans-serif;margin:0 0 8px";
         panel.appendChild(h);
+        var accountLink = element("a", "Sign in or create account");
+        accountLink.href = "/local-account";
+        accountLink.style.cssText = "display:inline-block;margin:0 0 8px;color:#03c";
+        panel.appendChild(accountLink);
         var status = element("div", "Loading local data…");
         panel.appendChild(status);
         var list = element("div");
