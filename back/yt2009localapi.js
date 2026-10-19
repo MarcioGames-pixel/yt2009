@@ -58,6 +58,20 @@ function parseRequestBody(body) {
     return body && typeof body === "object" ? body : null;
 }
 
+function authorizedWrite(req, res, config) {
+    const expected = config && typeof config.local_api_key === "string" ? config.local_api_key : "";
+    const supplied = req.get("x-local-api-key") || "";
+    if (!expected || expected.length < 24) {
+        res.status(503).json({ ok: false, error: "catalog_write_not_configured" });
+        return false;
+    }
+    if (supplied.length !== expected.length || supplied !== expected) {
+        res.status(401).json({ ok: false, error: "unauthorized" });
+        return false;
+    }
+    return true;
+}
+
 function validVideo(video) {
     return video && typeof video.id === "string" && ID_RE.test(video.id)
         && typeof video.title === "string" && video.title.trim().length > 0
@@ -101,6 +115,31 @@ module.exports = {
             res.json({ ok: true, service: "yt2009-local-api", version: 1, provider: "local" });
         });
 
+        // Upload a single operator-owned MP4/WebM file. The existing Express raw-body
+        // parser applies the configured file_limit; the secret is never embedded in HTML.
+        app.post("/local-api/v1/media/:filename", (req, res) => {
+            if (!authorizedWrite(req, res, config)) return;
+            const filename = req.params.filename || "";
+            if (path.basename(filename) !== filename || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\\.(mp4|webm)$/i.test(filename)) {
+                return res.status(400).json({ ok: false, error: "invalid_media_filename" });
+            }
+            if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+                return res.status(400).json({ ok: false, error: "empty_media_body" });
+            }
+            try {
+                if (!fs.existsSync(MEDIA_DIR)) fs.mkdirSync(MEDIA_DIR, { recursive: true });
+                const target = path.join(MEDIA_DIR, filename);
+                if (!target.startsWith(MEDIA_DIR + path.sep)) return res.status(400).json({ ok: false, error: "invalid_media_filename" });
+                const temporary = target + ".uploading";
+                fs.writeFileSync(temporary, req.body, { flag: "w" });
+                fs.renameSync(temporary, target);
+                res.status(201).json({ ok: true, filename, playback_url: "/local-media/" + encodeURIComponent(filename), bytes: req.body.length });
+            } catch (error) {
+                console.error("[local-api] media upload failed:", error.message);
+                res.status(500).json({ ok: false, error: "media_upload_failed" });
+            }
+        });
+
         app.get("/local-api/v1/channels", (req, res) => {
             try {
                 const q = typeof req.query.q === "string" ? req.query.q.trim().toLowerCase().slice(0, 120) : "";
@@ -136,11 +175,29 @@ module.exports = {
             }
         });
 
+        app.delete("/local-api/v1/channels/:id", (req, res) => {
+            if (!authorizedWrite(req, res, config)) return;
+            if (!ID_RE.test(req.params.id)) return res.status(400).json({ ok: false, error: "invalid_channel_id" });
+            try {
+                const catalog = readCatalog();
+                if (catalog.videos.some(v => validVideo(v) && v.channel_id === req.params.id)) {
+                    return res.status(409).json({ ok: false, error: "channel_has_videos" });
+                }
+                const channels = readChannels();
+                const index = channels.channels.findIndex(ch => validChannel(ch) && ch.id === req.params.id);
+                if (index < 0) return res.status(404).json({ ok: false, error: "channel_not_found" });
+                channels.channels.splice(index, 1);
+                fs.writeFileSync(CHANNELS_FILE + ".tmp", JSON.stringify(channels, null, 2));
+                fs.renameSync(CHANNELS_FILE + ".tmp", CHANNELS_FILE);
+                res.json({ ok: true, deleted: req.params.id });
+            } catch (error) {
+                console.error("[local-api] channel delete failed:", error.message);
+                res.status(500).json({ ok: false, error: "channel_catalog_write_failed" });
+            }
+        });
+
         app.post("/local-api/v1/channels", (req, res) => {
-            const expected = config && typeof config.local_api_key === "string" ? config.local_api_key : "";
-            const supplied = req.get("x-local-api-key") || "";
-            if (!expected || expected.length < 24) return res.status(503).json({ ok: false, error: "catalog_write_not_configured" });
-            if (supplied.length !== expected.length || supplied !== expected) return res.status(401).json({ ok: false, error: "unauthorized" });
+            if (!authorizedWrite(req, res, config)) return;
             const channel = parseRequestBody(req.body);
             if (!validChannel(channel)) return res.status(400).json({ ok: false, error: "invalid_channel" });
             try {
@@ -187,15 +244,25 @@ module.exports = {
 
         // Catalog writes are disabled until the operator explicitly configures
         // local_api_key in back/config.json. Never expose an unprotected write route.
+        app.delete("/local-api/v1/videos/:id", (req, res) => {
+            if (!authorizedWrite(req, res, config)) return;
+            if (!ID_RE.test(req.params.id)) return res.status(400).json({ ok: false, error: "invalid_video_id" });
+            try {
+                const catalog = readCatalog();
+                const index = catalog.videos.findIndex(v => validVideo(v) && v.id === req.params.id);
+                if (index < 0) return res.status(404).json({ ok: false, error: "video_not_found" });
+                catalog.videos.splice(index, 1);
+                fs.writeFileSync(CATALOG_FILE + ".tmp", JSON.stringify(catalog, null, 2));
+                fs.renameSync(CATALOG_FILE + ".tmp", CATALOG_FILE);
+                res.json({ ok: true, deleted: req.params.id });
+            } catch (error) {
+                console.error("[local-api] catalog delete failed:", error.message);
+                res.status(500).json({ ok: false, error: "catalog_write_failed" });
+            }
+        });
+
         app.post("/local-api/v1/videos", (req, res) => {
-            const expected = config && typeof config.local_api_key === "string" ? config.local_api_key : "";
-            const supplied = req.get("x-local-api-key") || "";
-            if (!expected || expected.length < 24) {
-                return res.status(503).json({ ok: false, error: "catalog_write_not_configured" });
-            }
-            if (supplied.length !== expected.length || supplied !== expected) {
-                return res.status(401).json({ ok: false, error: "unauthorized" });
-            }
+            if (!authorizedWrite(req, res, config)) return;
             const video = parseRequestBody(req.body);
             if (!validVideo(video)) return res.status(400).json({ ok: false, error: "invalid_video" });
             try {
