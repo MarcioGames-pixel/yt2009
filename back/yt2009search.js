@@ -49,6 +49,54 @@ module.exports = {
             query += " " + this.handle_only_old(flags)
         }
 
+        // Fully self-hosted mode: do not contact YouTube/Innertube or the Data API.
+        if (config.local_api_only === true) {
+            try {
+                const localApi = require("./yt2009localapi");
+                const offset = Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20);
+                let localResults = [];
+                if (params.search_type === "search_users") {
+                    localResults = localApi.searchChannels(query, 20);
+                } else if (params.search_type === "search_videos") {
+                    localResults = localApi.searchVideos(query, 20, offset).videos;
+                } else {
+                    const localVideos = localApi.searchVideos(query, 20, offset);
+                    localResults = localVideos.videos.concat(localApi.searchChannels(query, 20));
+                }
+                localResults.push({ type: "metadata", resultCount: localResults.length });
+                callback(localResults);
+            } catch (error) {
+                console.error("[local-api] local-only search failed:", error.message);
+                callback([{ type: "metadata", resultCount: 0 }]);
+            }
+            return;
+        }
+
+        // Prefer the self-hosted catalog whenever it contains matching data.
+        // This avoids contacting upstream APIs for locally managed content.
+        if (config.local_api_only !== true) {
+            try {
+                const localApi = require("./yt2009localapi");
+                const offset = Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20);
+                let localResults = [];
+                if (params.search_type === "search_users") {
+                    localResults = localApi.searchChannels(query, 20);
+                } else if (params.search_type === "search_videos") {
+                    localResults = localApi.searchVideos(query, 20, offset).videos;
+                } else {
+                    const localVideos = localApi.searchVideos(query, 20, offset);
+                    localResults = localVideos.videos.concat(localApi.searchChannels(query, 20));
+                }
+                if (localResults.length) {
+                    localResults.push({ type: "metadata", resultCount: localResults.length });
+                    callback(localResults);
+                    return;
+                }
+            } catch (error) {
+                console.error("[local-api] local-first search failed:", error.message);
+            }
+        }
+
         let useProto = false;
         let paramsMsg = new searchParams.SearchRequestParams()
         let filtersMsg = new searchParams.SearchRequestParams.Filter
@@ -260,6 +308,28 @@ module.exports = {
                 let resultsToCallback = []
                 resultsToCallback = yt2009utils.search_parse(r)
 
+                // Prefer locally hosted results when the upstream response contains
+                // no usable videos (for example, upstream API changes or blocks).
+                if (!resultsToCallback.some(item => item.type === "video" || item.type === "live-video")) {
+                    try {
+                        const local = require("./yt2009localapi").searchVideos(
+                            query,
+                            20,
+                            Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20)
+                        );
+                        const localResults = local.videos.concat(
+                            require("./yt2009localapi").searchChannels(query, 20)
+                        );
+                        if (localResults.length) {
+                            localResults.push({ type: "metadata", resultCount: local.total });
+                            callback(localResults);
+                            return;
+                        }
+                    } catch (localError) {
+                        console.error("[local-api] search fallback failed:", localError.message);
+                    }
+                }
+
                 function returnResults() {
                     // cache only if no live videos
                     let liveVidCount = resultsToCallback.filter(s => {
@@ -300,7 +370,25 @@ module.exports = {
                 } else {
                     returnResults()
                 }
-            })))
+            }))).catch(error => {
+                // If the remote service is unavailable, search the self-hosted catalog
+                // and keep the existing legacy search page/rendering intact.
+                try {
+                    const local = require("./yt2009localapi").searchVideos(
+                        query,
+                        20,
+                        Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20)
+                    );
+                    const localResults = local.videos.concat(
+                        require("./yt2009localapi").searchChannels(query, 20)
+                    );
+                    localResults.push({ type: "metadata", resultCount: local.total });
+                    callback(localResults);
+                } catch (localError) {
+                    console.error("[local-api] search fallback failed:", localError.message);
+                    callback([]);
+                }
+            })
         }
     },
 
