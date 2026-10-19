@@ -120,7 +120,7 @@ module.exports = {
         app.post("/local-api/v1/media/:filename", (req, res) => {
             if (!authorizedWrite(req, res, config)) return;
             const filename = req.params.filename || "";
-            if (path.basename(filename) !== filename || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\\.(mp4|webm)$/i.test(filename)) {
+            if (path.basename(filename) !== filename || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\.(mp4|webm)$/i.test(filename)) {
                 return res.status(400).json({ ok: false, error: "invalid_media_filename" });
             }
             if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
