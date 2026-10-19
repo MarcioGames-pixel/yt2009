@@ -1,15 +1,19 @@
 # Self-hosted local API
 
-This API is optional and does not replace the legacy HTML/CSS. It lets a self-hosted instance keep its own catalog and lightweight community data without calling the official YouTube API for these records.
+This API is optional and keeps the legacy HTML/CSS and modules in place. It provides a self-hosted catalog and lightweight community data. To stop legacy search from contacting YouTube/Innertube or the Data API, set `local_api_only` to `true` in `back/config.json`. In that mode the Home, Videos, Channels, Search, local video watch pages, and local channel pages use the local catalog. Keep it `false` to preserve the original upstream search behavior when local results are absent.
 
 ## Catalog
 
 - `GET /local-api/v1/status`
 - `GET /local-api/v1/videos?q=term&limit=20&offset=0`
 - `GET /local-api/v1/videos/:id`
+- `GET /local-api/v1/channels?q=term`
+- `GET /local-api/v1/channels/:id`
+- `GET /local-api/v1/channels/:id/videos`
+- `POST /local-api/v1/channels` — same `local_api_key` requirement as video writes
 - `POST /local-api/v1/videos` — disabled until `local_api_key` is configured in the server config with at least 24 characters. Send the key in `x-local-api-key`.
 
-Catalog video records accept `id`, `title`, `description`, `author`, `thumbnail`, `playback_url`, `duration`, `published_at`, and `tags`. Use a real reachable `playback_url` for playable media; this catalog does not download or host video files automatically.
+Catalog video records accept `id`, `title`, `description`, `author`, `channel_id`, `thumbnail`, `playback_url`, `duration`, `published_at`, and `tags`. Channel records accept `id`, `name`, `description`, `avatar`, `banner`, and `subscribers`. Use a real reachable `playback_url` for playable media; this catalog does not download or host video files automatically.
 
 ## Anonymous local profile and community
 
@@ -38,4 +42,4 @@ Keep the returned cookie for subsequent requests. This is not a verified account
 - `GET|POST /local-api/v1/subscriptions` (POST JSON `{"channel_id":"CHANNEL_ID"}`)
 - `DELETE /local-api/v1/subscriptions/:item`
 
-Community data is stored in `back/local-data/community.json`. Do not expose the instance publicly without adding operational protections such as HTTPS, rate limits, backups, and moderation. The legacy pages are not yet wired to these new endpoints; this is a backend foundation for that next integration step.
+Community data is stored in `back/local-data/community.json`. Do not expose the instance publicly without adding operational protections such as HTTPS, rate limits, backups, and moderation. The legacy watch template now loads a small community panel for local comments, ratings, favorites, playlists, and subscriptions. Local catalog video and channel IDs are rendered by dedicated handlers; IDs not present in the local catalog fall through to the original modules. Existing account pages are not converted into a verified registration/login system.
