@@ -11,10 +11,27 @@ This API is optional and keeps the legacy HTML/CSS and modules in place. It prov
 - `GET /local-api/v1/channels?q=term`
 - `GET /local-api/v1/channels/:id`
 - `GET /local-api/v1/channels/:id/videos`
-- `POST /local-api/v1/channels` — same `local_api_key` requirement as video writes
-- `POST /local-api/v1/videos` — disabled until `local_api_key` is configured in the server config with at least 24 characters. Send the key in `x-local-api-key`.
+- `POST /local-api/v1/channels` — create/update a channel; protected by `local_api_key`
+- `DELETE /local-api/v1/channels/:id` — protected; returns `409 channel_has_videos` if videos still reference the channel
+- `POST /local-api/v1/videos` — create/update a video; protected by `local_api_key`
+- `DELETE /local-api/v1/videos/:id` — protected; removes the catalog record but intentionally leaves media files untouched
+- `POST /local-api/v1/media/:filename` — upload raw MP4/WebM bytes; protected by `local_api_key`, and bounded by the existing `file_limit` in MB
+- `GET /local-api/v1/status` — health/status endpoint
+
+Write endpoints return `503 catalog_write_not_configured` until `local_api_key` is configured in the server's local `back/config.json` with at least 24 characters. Send it in `x-local-api-key`. Do not put this secret in browser JavaScript, commit it, or expose write credentials to untrusted users.
 
 Catalog video records accept `id`, `title`, `description`, `author`, `channel_id`, `thumbnail`, `playback_url`, `duration`, `published_at`, and `tags`. Channel records accept `id`, `name`, `description`, `avatar`, `banner`, and `subscribers`. Use `playback_url: "/local-media/demo.mp4"` after placing an operator-owned file at `back/local-data/media/demo.mp4`, or provide another reachable HTTP(S) media URL. Local media files are served directly by this instance; no official YouTube API is involved in their playback.
+
+Example media upload (run on a trusted machine; replace the path and secret):
+
+```sh
+curl -i -X POST http://localhost:8080/local-api/v1/media/demo.mp4 \
+  -H 'x-local-api-key: REPLACE_WITH_YOUR_LOCAL_SECRET' \
+  -H 'Content-Type: video/mp4' \
+  --data-binary @demo.mp4
+```
+
+The endpoint buffers the request body in memory up to the configured request limit, so use a sensible `file_limit` and avoid large uploads. Upload only media you own or have permission to host.
 
 ## Anonymous local profile and community
 
@@ -46,4 +63,4 @@ Keep the returned cookie for subsequent requests. This is not a verified account
 - `GET|POST /local-api/v1/subscriptions` (POST JSON `{"channel_id":"CHANNEL_ID"}`)
 - `DELETE /local-api/v1/subscriptions/:item`
 
-Community data is stored in `back/local-data/community.json`. Do not expose the instance publicly without adding operational protections such as HTTPS, rate limits, backups, and moderation. The legacy watch template now loads a small community panel for local comments, ratings, favorites, playlists, and subscriptions. Local catalog video and channel IDs are rendered by dedicated handlers; IDs not present in the local catalog fall through to the original modules. Existing account pages are not converted into a verified registration/login system.
+Community data is stored in `back/local-data/community.json`. Do not expose the instance publicly without adding operational protections such as HTTPS, rate limits, backups, and moderation. The legacy watch template now loads a small community panel for local comments, ratings, favorites, playlists, and subscriptions. The community list panel supports both extensionless routes and legacy static names such as `favorites.htm`, `playlists.htm`, `quicklist.htm`, and `subscriptions.htm`. Local catalog video and channel IDs are rendered by dedicated handlers; IDs not present in the local catalog fall through to the original modules. Existing account pages are not converted into a verified registration/login system.
