@@ -14,7 +14,7 @@ const VIDEO_ID = /^[A-Za-z0-9_-]{1,80}$/;
 const SESSION_COOKIE = "yt2009_local_session";
 
 function freshData() {
-    return { version: 1, users: {}, comments: {}, ratings: {}, playlists: {} };
+    return { version: 1, users: {}, comments: {}, ratings: {}, playlists: {}, favorites: {}, subscriptions: {}, quicklist: {} };
 }
 function readData() {
     if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -179,6 +179,17 @@ module.exports = {
             res.status(201).json({ ok: true, playlist: { id, name, video_ids: [], updated_at: playlist.updated_at } });
         });
 
+        app.delete("/local-api/v1/playlists/:id", (req, res) => {
+            let data;
+            try { data = readData(); } catch (_) { return res.status(500).json({ ok: false, error: "community_unavailable" }); }
+            const s = requireSession(req, res, data); if (!s) return;
+            const playlist = data.playlists[req.params.id];
+            if (!playlist || playlist.owner !== s.id) return res.status(404).json({ ok: false, error: "playlist_not_found" });
+            delete data.playlists[req.params.id];
+            try { writeData(data); } catch (_) { return res.status(500).json({ ok: false, error: "community_write_failed" }); }
+            res.json({ ok: true });
+        });
+
         app.post("/local-api/v1/playlists/:id/videos", (req, res) => {
             let data;
             try { data = readData(); } catch (_) { return res.status(500).json({ ok: false, error: "community_unavailable" }); }
@@ -205,7 +216,7 @@ module.exports = {
             res.json({ ok: true, playlist: { id: playlist.id, name: playlist.name, video_ids: playlist.video_ids, updated_at: playlist.updated_at } });
         });
 
-        for (const kind of ["favorites", "subscriptions"]) {
+        for (const kind of ["favorites", "subscriptions", "quicklist"]) {
             app.get("/local-api/v1/" + kind, (req, res) => {
                 try {
                     const data = readData(), s = session(req, data);
@@ -219,8 +230,8 @@ module.exports = {
                 if (!data[kind]) data[kind] = {};
                 const s = requireSession(req, res, data); if (!s) return;
                 const body = parseBody(req.body) || {};
-                const item = kind === "favorites" ? body.video_id : body.channel_id;
-                if (typeof item !== "string" || !VIDEO_ID.test(item)) return res.status(400).json({ ok: false, error: kind === "favorites" ? "invalid_video_id" : "invalid_channel_id" });
+                const item = kind === "subscriptions" ? body.channel_id : body.video_id;
+                if (typeof item !== "string" || !VIDEO_ID.test(item)) return res.status(400).json({ ok: false, error: kind === "subscriptions" ? "invalid_channel_id" : "invalid_video_id" });
                 const list = ensureList(data[kind], s.id);
                 if (!list.includes(item)) list.push(item);
                 try { writeData(data); } catch (_) { return res.status(500).json({ ok: false, error: "community_write_failed" }); }
