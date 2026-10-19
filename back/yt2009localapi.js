@@ -27,6 +27,16 @@ function readCatalog() {
     return data;
 }
 
+function parseRequestBody(body) {
+    if (Buffer.isBuffer(body)) {
+        try { return JSON.parse(body.toString("utf8")); } catch (error) { return null; }
+    }
+    if (typeof body === "string") {
+        try { return JSON.parse(body); } catch (error) { return null; }
+    }
+    return body && typeof body === "object" ? body : null;
+}
+
 function validVideo(video) {
     return video && typeof video.id === "string" && ID_RE.test(video.id)
         && typeof video.title === "string" && video.title.trim().length > 0
@@ -94,7 +104,7 @@ module.exports = {
             if (supplied.length !== expected.length || supplied !== expected) {
                 return res.status(401).json({ ok: false, error: "unauthorized" });
             }
-            const video = req.body;
+            const video = parseRequestBody(req.body);
             if (!validVideo(video)) return res.status(400).json({ ok: false, error: "invalid_video" });
             try {
                 const catalog = readCatalog();
