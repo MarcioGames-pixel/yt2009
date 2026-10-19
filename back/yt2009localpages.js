@@ -58,6 +58,23 @@ function watchHtml(video) {
     html = replaceAll(html, '<!--yt2009_notice-->', '<div style="margin:8px 0;padding:6px;border:1px solid #d7d7a0;background:#ffffe0;font:12px Arial">Self-hosted video catalog · Local community features are available below.</div>');
     return html;
 }
+
+function homeHtml(videos, channels, title) {
+    const videoCards = videos.map(video => {
+        const thumb = mediaUrl(video.thumbnail) || "/assets/site-assets/default.png";
+        return '<div style="width:180px;margin:8px;display:inline-block;vertical-align:top;font:12px Arial;color:#333">' +
+            '<a href="/watch?v=' + encodeURIComponent(video.id) + '" style="color:#03c;text-decoration:none">' +
+            '<img src="' + esc(thumb) + '" alt="" style="width:180px;height:101px;object-fit:cover;border:1px solid #aaa">' +
+            '<div style="font-weight:bold;margin-top:4px">' + esc(video.title) + '</div></a><div>' + esc(video.author) + '</div></div>';
+    }).join("");
+    const channelLinks = channels.map(ch => '<a href="' + esc(ch.url) + '" style="display:inline-block;margin:6px;padding:6px;border:1px solid #ccc;background:#f5f5f5">' + esc(ch.name) + '</a>').join("");
+    return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube - ' + esc(title) +
+        '</title><link rel="stylesheet" href="/www-core-feather.css"><style>body{font:12px Arial,sans-serif;color:#333;background:#fff;margin:0}a{color:#03c}#masthead{padding:12px 20px;border-bottom:1px solid #ccc;background:#f4f4f4}#masthead a{font-size:18px;font-weight:bold;text-decoration:none}main{max-width:1000px;margin:18px auto;padding:0 12px}</style></head><body><div id="masthead"><a href="/">YouTube</a> &nbsp; <a href="/videos">Videos</a> &nbsp; <a href="/channels">Channels</a><form action="/results" method="get" style="float:right"><input name="search_query" maxlength="128"><button>Search</button></form></div><main><h1 style="font-size:22px">' + esc(title) + '</h1>' +
+        (channels.length ? '<section><h2 style="font-size:16px">Channels</h2>' + channelLinks + '</section>' : '') +
+        '<h2 style="font-size:16px;border-bottom:1px solid #ccc;padding-bottom:6px">Videos</h2>' +
+        (videoCards || '<p>The local catalog is empty. Configure local_api_key and add channel/video records using the documented local API.</p>') + '</main></body></html>';
+}
+
 function channelHtml(channel, videos) {
     const avatar = mediaUrl(channel.avatar);
     const banner = mediaUrl(channel.banner);
@@ -82,7 +99,30 @@ function channelHtml(channel, videos) {
         (videoCards || '<p>This channel has no videos in the local catalog yet.</p>') + '<div class="clear"></div></main></body></html>';
 }
 module.exports = {
-    set: function(app) {
+    set: function(app, config) {
+        function localOnly() { return !!(config && config.local_api_only === true); }
+        function renderHome(req, res, title) {
+            try {
+                const videoData = local.getVideos(100, 0);
+                const channels = local.searchChannels("", 100).map(ch => ({ name: ch.name, url: ch.url }));
+                res.type("html").send(homeHtml(videoData.videos, channels, title));
+            } catch (error) {
+                console.error("[local-pages] homepage render failed:", error.message);
+                res.status(500).send("Local catalog unavailable");
+            }
+        }
+        app.get("/", function(req, res, next) {
+            if (!localOnly() || !utils.isAuthorized(req)) return next();
+            renderHome(req, res, "Home");
+        });
+        app.get("/videos", function(req, res, next) {
+            if (!localOnly() || !utils.isAuthorized(req)) return next();
+            renderHome(req, res, "Videos");
+        });
+        app.get("/channels", function(req, res, next) {
+            if (!localOnly() || !utils.isAuthorized(req)) return next();
+            renderHome(req, res, "Channels");
+        });
         app.get("/watch", function(req, res, next) {
             if (!utils.isAuthorized(req) || !req.query.v) return next();
             try {
