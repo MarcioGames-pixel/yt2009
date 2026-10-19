@@ -25,5 +25,7 @@ jobs:
           node --check back/yt2009search.js
           node --check back/backend.js
           node --check assets/site-assets/yt2009-local-community.js
+          node --check test/local-api.test.js
+          node --check test/community-api.test.js
       - name: Run local API smoke tests
-        run: node --test test/local-api.test.js
+        run: npm test
