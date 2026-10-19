@@ -47,12 +47,12 @@ function current(req, data) { const id = cookieValue(req); return id && data.use
 function validImageUrl(value) { return typeof value === "string" && value.length <= 500 && (/^https:\/\//i.test(value) || /^\/(?!\/)/.test(value)); }
 module.exports = { set(app, options) {
     options = options || {};
-    const mailer = options && options.sendVerificationEmail || (async (email, token) => {
+    const mailer = options && options.sendVerificationEmail || (async (email, token, purpose) => {
         const host = process.env.YT2009_SMTP_HOST;
         const from = process.env.YT2009_SMTP_FROM || process.env.YT2009_SMTP_USER;
         if (!host || !from) throw new Error("SMTP is not configured");
         const base = String(process.env.YT2009_PUBLIC_URL || "http://localhost:8080").replace(/\/$/, "");
-        await sendMail({host,port:Number(process.env.YT2009_SMTP_PORT || 465),secure:process.env.YT2009_SMTP_SECURE !== "false",user:process.env.YT2009_SMTP_USER || "",password:process.env.YT2009_SMTP_PASSWORD || "",from},{to:email,subject:"Verify your yt2009 account",text:(arguments[2] === "reset" ? "Reset your yt2009 password: " + base + "/local-account/reset?token=" + token : "Verify your yt2009 email: " + base + "/local-account/verify?token=" + token) + "\nThis link expires in 30 minutes."});
+        await sendMail({host,port:Number(process.env.YT2009_SMTP_PORT || 465),secure:process.env.YT2009_SMTP_SECURE !== "false",user:process.env.YT2009_SMTP_USER || "",password:process.env.YT2009_SMTP_PASSWORD || "",from},{to:email,subject:"Verify your yt2009 account",text:(purpose === "reset" ? "Reset your yt2009 password: " + base + "/local-account/reset?token=" + token : "Verify your yt2009 email: " + base + "/local-account/verify?token=" + token) + "\nThis link expires in 30 minutes."});
     });
     app.post("/local-api/v1/accounts/register", async (req,res) => {
         const b=body(req), username=typeof b.username==="string"?b.username.trim().toLowerCase():"", password=typeof b.password==="string"?b.password:"", email=typeof b.email==="string"?b.email.trim().toLowerCase():"", display=typeof b.display_name==="string"?b.display_name.trim().slice(0,32):"";
