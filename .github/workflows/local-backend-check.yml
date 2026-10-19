@@ -21,12 +21,14 @@ jobs:
         run: |
           node --check back/yt2009localapi.js
           node --check back/yt2009communityapi.js
+          node --check back/yt2009accounts.js
           node --check back/yt2009localpages.js
           node --check back/yt2009search.js
           node --check back/backend.js
           node --check assets/site-assets/yt2009-local-community.js
           node --check test/local-api.test.js
           node --check test/community-api.test.js
+          node --check test/community-accounts.test.js
           node --check test/local-pages.test.js
           node --check test/community-ui.test.js
       - name: Run local API smoke tests
