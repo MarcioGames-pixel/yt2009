@@ -1,6 +1,6 @@
 # Self-hosted local API
 
-This API is optional and keeps the legacy HTML/CSS and modules in place. It provides a self-hosted catalog and lightweight community data. To stop legacy search from contacting YouTube/Innertube or the Data API, set `local_api_only` to `true` in `back/config.json`. In that mode the Home, Videos, Channels, Search, local video watch pages, and local channel pages use the local catalog. Keep it `false` to preserve the original upstream search behavior when local results are absent.
+This API is optional and keeps the legacy HTML/CSS and modules in place. It provides a self-hosted catalog and lightweight community data. To stop legacy search from contacting YouTube/Innertube or the Data API, set `local_api_only` to `true` in `back/config.json`. In that mode the Home, Videos, Channels, Search, local video watch pages, local channel pages, and embed pages use the local catalog. Unknown watch/channel/embed IDs return local 404 responses instead of falling through to legacy upstream handlers. Keep it `false` to preserve the original upstream search behavior when local results are absent.
 
 ## Catalog
 
