@@ -100,6 +100,18 @@ module.exports = { set(app) {
             return res.json({ok:true,profile:publicUser(id,user),playlists});
         } catch (_) { return fail(res,500,"account_storage_unavailable"); }
     });
+    app.get("/u/:username", (req,res) => {
+        const name=String(req.params.username||"").toLowerCase(); if(!USERNAME.test(name)) return res.status(404).type("text").send("Profile not found");
+        try {
+            const data=readData(), entry=findUser(data,name); if(!entry) return res.status(404).type("text").send("Profile not found");
+            const [id,user]=entry, profile=publicUser(id,user);
+            const esc=value=>String(value==null?"":value).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+            const avatar=validImageUrl(profile.avatar_url)?'<img alt="" src="'+esc(profile.avatar_url)+'" style="width:80px;height:80px;object-fit:cover;float:left;margin-right:14px;border:1px solid #aaa">':"";
+            const playlists=Object.values(data.playlists||{}).filter(p=>p&&p.owner===id).map(p=>'<li>'+esc(p.name)+' ('+(Array.isArray(p.video_ids)?p.video_ids.length:0)+' videos)</li>').join("");
+            const html='<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>yt2009 - '+esc(profile.display_name)+'</title><style>body{margin:0;background:#fff;color:#333;font:12px Arial}header{padding:14px max(16px,calc((100% - 900px)/2));background:#333;color:#fff;border-bottom:4px solid #c00;font-size:20px}main{max-width:900px;margin:24px auto;padding:0 14px}.panel{border:1px solid #ccc;background:#f7f7f7;padding:16px;min-height:90px}a{color:#03c}</style></head><body><header><a style="color:white;text-decoration:none" href="/">yt2009</a> · Channel</header><main><section class="panel">'+avatar+'<h1 style="font-size:20px;margin-top:0">'+esc(profile.display_name)+'</h1><p>@'+esc(profile.username)+' · joined '+esc((profile.created_at||"").slice(0,10))+'</p><p>'+esc(profile.bio)+'</p><div style="clear:both"></div></section><h2>Public playlists</h2><ul>'+(playlists||'<li>No public playlists yet.</li>')+'</ul><p><a href="/local-account">Sign in / manage account</a> · <a href="/">Home</a></p></main></body></html>';
+            return res.type("html").send(html);
+        } catch (_) { return res.status(500).type("text").send("Profile unavailable"); }
+    });
     app.get("/local-account", (req,res) => {
         res.type("html").send(fs.readFileSync(path.join(__dirname,"..","assets","site-assets","yt2009-local-accounts.html"),"utf8"));
     });
