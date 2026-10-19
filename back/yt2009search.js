@@ -260,6 +260,25 @@ module.exports = {
                 let resultsToCallback = []
                 resultsToCallback = yt2009utils.search_parse(r)
 
+                // Prefer locally hosted results when the upstream response contains
+                // no usable videos (for example, upstream API changes or blocks).
+                if (!resultsToCallback.some(item => item.type === "video" || item.type === "live-video")) {
+                    try {
+                        const local = require("./yt2009localapi").searchVideos(
+                            query,
+                            20,
+                            Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20)
+                        );
+                        if (local.videos.length) {
+                            local.videos.push({ type: "metadata", resultCount: local.total });
+                            callback(local.videos);
+                            return;
+                        }
+                    } catch (localError) {
+                        console.error("[local-api] search fallback failed:", localError.message);
+                    }
+                }
+
                 function returnResults() {
                     // cache only if no live videos
                     let liveVidCount = resultsToCallback.filter(s => {
