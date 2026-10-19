@@ -282,6 +282,9 @@ if(fs.existsSync("./yt2009experimentals.js")) {
     catch(error) {console.log(error)}
 }
 
+// Independent, self-hosted catalog API (no official YouTube API dependency).
+require("./yt2009localapi").set(app, config);
+
 if(config.redirmode
 && typeof(config.redirmode) == "string") {
     app.get("*", (req, res) => {
