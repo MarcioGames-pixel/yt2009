@@ -2,6 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { sendMail } = require("./yt2009mail");
 const FILE = path.join(__dirname, "local-data", "community.json");
 const COOKIE = "yt2009_local_session";
 const USERNAME = /^[a-z0-9_]{3,24}$/;
@@ -44,11 +45,17 @@ function fail(res, status, error) { return res.status(status).json({ok:false,err
 function findUser(data, name) { return Object.entries(data.users).find(([,u]) => u && u.username === name); }
 function current(req, data) { const id = cookieValue(req); return id && data.users[id] ? {id,user:data.users[id]} : null; }
 function validImageUrl(value) { return typeof value === "string" && value.length <= 500 && (/^https:\/\//i.test(value) || /^\/(?!\/)/.test(value)); }
-module.exports = { set(app) {
-    app.post("/local-api/v1/accounts/register", (req,res) => {
-        const b=body(req), username=typeof b.username==="string"?b.username.trim().toLowerCase():"",
-            password=typeof b.password==="string"?b.password:"", email=typeof b.email==="string"?b.email.trim().toLowerCase():"",
-            display=typeof b.display_name==="string"?b.display_name.trim().slice(0,32):"";
+module.exports = { set(app, options) {
+    options = options || {};
+    const mailer = options && options.sendVerificationEmail || (async (email, token) => {
+        const host = process.env.YT2009_SMTP_HOST;
+        const from = process.env.YT2009_SMTP_FROM || process.env.YT2009_SMTP_USER;
+        if (!host || !from) throw new Error("SMTP is not configured");
+        const base = String(process.env.YT2009_PUBLIC_URL || "http://localhost:8080").replace(/\/$/, "");
+        await sendMail({host,port:Number(process.env.YT2009_SMTP_PORT || 465),secure:process.env.YT2009_SMTP_SECURE !== "false",user:process.env.YT2009_SMTP_USER || "",password:process.env.YT2009_SMTP_PASSWORD || "",from},{to:email,subject:"Verify your yt2009 account",text:"Verify your yt2009 email: " + base + "/local-account/verify?token=" + token + "\nThis link expires in 30 minutes."});
+    });
+    app.post("/local-api/v1/accounts/register", async (req,res) => {
+        const b=body(req), username=typeof b.username==="string"?b.username.trim().toLowerCase():"", password=typeof b.password==="string"?b.password:"", email=typeof b.email==="string"?b.email.trim().toLowerCase():"", display=typeof b.display_name==="string"?b.display_name.trim().slice(0,32):"";
         if(!USERNAME.test(username)) return fail(res,400,"username_must_be_3_to_24_letters_numbers_or_underscores");
         if(password.length<8||password.length>256) return fail(res,400,"password_must_be_8_to_256_characters");
         if(!EMAIL.test(email)||email.length>254) return fail(res,400,"valid_email_required");
@@ -56,12 +63,20 @@ module.exports = { set(app) {
             const data=readData();
             if(Object.values(data.users).some(u=>u&&u.username===username)) return fail(res,409,"username_taken");
             if(Object.values(data.users).some(u=>u&&u.email&&u.email.toLowerCase()===email)) return fail(res,409,"email_taken");
-            const id=crypto.randomBytes(24).toString("hex"), salt=crypto.randomBytes(16).toString("hex");
-            data.users[id]={username,email,display_name:display||username,bio:"",avatar_url:"",created_at:new Date().toISOString(),
-                password_salt:salt,password_hash:crypto.scryptSync(password,salt,64).toString("hex"),account_version:1,
-                email_verified:false, verification_required:false};
-            writeData(data); setCookie(req,res,id);
-            return res.status(201).json({ok:true,user:publicUser(id,data.users[id]),notice:"Account created. Email delivery/verification is not configured on this server."});
+            const id=crypto.randomBytes(24).toString("hex"), salt=crypto.randomBytes(16).toString("hex"), token=crypto.randomBytes(32).toString("hex");
+            data.users[id]={username,email,display_name:display||username,bio:"",avatar_url:"",created_at:new Date().toISOString(),password_salt:salt,password_hash:crypto.scryptSync(password,salt,64).toString("hex"),account_version:1,email_verified:false,verification_required:true,verification_token_hash:crypto.createHash("sha256").update(token).digest("hex"),verification_expires_at:Date.now()+1800000,verification_last_sent_at:Date.now()};
+            writeData(data);
+            try { await mailer(email,token); } catch (_) { delete data.users[id]; writeData(data); return fail(res,503,"verification_email_unavailable_check_smtp_configuration"); }
+            return res.status(201).json({ok:true,verification_required:true,notice:"Account created. Check your email and verify it before signing in."});
+        } catch (_) { return fail(res,500,"account_storage_unavailable"); }
+    });
+    app.get("/local-api/v1/accounts/verify", (req,res) => {
+        const token=String((req.query||{}).token||""); if(!/^[a-f0-9]{64}$/.test(token)) return fail(res,400,"invalid_or_expired_verification_token");
+        try { const data=readData(), hash=crypto.createHash("sha256").update(token).digest("hex"), entry=Object.entries(data.users).find(([,u])=>u&&u.verification_token_hash===hash);
+            if(!entry) return fail(res,400,"invalid_or_expired_verification_token"); const [id,user]=entry;
+            if(!user.verification_expires_at||user.verification_expires_at<Date.now()) return fail(res,400,"invalid_or_expired_verification_token");
+            user.email_verified=true; user.verification_required=false; user.email_verified_at=new Date().toISOString(); delete user.verification_token_hash; delete user.verification_expires_at; delete user.verification_last_sent_at; data.users[id]=user; writeData(data);
+            return res.json({ok:true,notice:"Email verified. You can now sign in."});
         } catch (_) { return fail(res,500,"account_storage_unavailable"); }
     });
     app.post("/local-api/v1/accounts/login", (req,res) => {
@@ -71,7 +86,9 @@ module.exports = { set(app) {
         try {
             const data=readData(), entry=Object.entries(data.users).find(([,u])=>u&&((u.username===name)||(u.email&&u.email.toLowerCase()===name))&&u.password_salt&&u.password_hash);
             if(!entry) return fail(res,401,"invalid_credentials");
-            const [id,user]=entry, actual=crypto.scryptSync(password,user.password_salt,64), expected=Buffer.from(user.password_hash,"hex");
+            const [id,user]=entry;
+            if(user.verification_required && !user.email_verified) return fail(res,403,"email_verification_required");
+            const actual=crypto.scryptSync(password,user.password_salt,64), expected=Buffer.from(user.password_hash,"hex");
             if(expected.length!==actual.length||!crypto.timingSafeEqual(actual,expected)) return fail(res,401,"invalid_credentials");
             setCookie(req,res,id); return res.json({ok:true,user:publicUser(id,user)});
         } catch (_) { return fail(res,500,"account_storage_unavailable"); }
@@ -112,6 +129,7 @@ module.exports = { set(app) {
             return res.type("html").send(html);
         } catch (_) { return res.status(500).type("text").send("Profile unavailable"); }
     });
+    app.get("/local-account/verify", (req,res) => { res.redirect(302,"/local-account"); });
     app.get("/local-account", (req,res) => {
         res.type("html").send(fs.readFileSync(path.join(__dirname,"..","assets","site-assets","yt2009-local-accounts.html"),"utf8"));
     });
