@@ -127,26 +127,40 @@ module.exports = {
             renderHome(req, res, "Channels");
         });
         app.get("/watch", function(req, res, next) {
-            if (!utils.isAuthorized(req) || !req.query.v) return next();
+            if (!utils.isAuthorized(req)) return localOnly() ? res.redirect("/unauth.htm") : next();
+            if (!req.query.v) return localOnly() ? res.status(400).send("Missing video ID") : next();
             try {
                 const video = local.getVideo(String(req.query.v));
-                if (!video) return next();
+                if (!video) return localOnly() ? res.status(404).type("text").send("Video not found in the local catalog") : next();
                 res.type("html").send(watchHtml(video));
             } catch (error) {
                 console.error("[local-pages] watch render failed:", error.message);
-                next();
+                return localOnly() ? res.status(500).send("Local catalog unavailable") : next();
             }
         });
         app.get("/channel/:id", function(req, res, next) {
-            if (!utils.isAuthorized(req)) return next();
+            if (!utils.isAuthorized(req)) return localOnly() ? res.redirect("/unauth.htm") : next();
             try {
                 const channel = local.getChannel(String(req.params.id));
-                if (!channel) return next();
+                if (!channel) return localOnly() ? res.status(404).type("text").send("Channel not found in the local catalog") : next();
                 const data = local.getChannelVideos(channel.id, 100, 0);
                 res.type("html").send(channelHtml(channel, data.videos));
             } catch (error) {
                 console.error("[local-pages] channel render failed:", error.message);
-                next();
+                return localOnly() ? res.status(500).send("Local catalog unavailable") : next();
+            }
+        });
+        app.get("/embed/:id", function(req, res, next) {
+            if (!utils.isAuthorized(req)) return localOnly() ? res.redirect("/unauth.htm") : next();
+            try {
+                const video = local.getVideo(String(req.params.id));
+                if (!video) return localOnly() ? res.status(404).type("text").send("Video not found in the local catalog") : next();
+                const playback = mediaUrl(video.playback_url);
+                if (!playback) return res.status(200).type("html").send('<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(video.title) + '</title></head><body style="margin:0;background:#111;color:#fff;font:14px Arial"><p style="padding:16px">This local video has no playback URL configured.</p></body></html>');
+                res.type("html").send('<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(video.title) + '</title></head><body style="margin:0;background:#000"><video controls autoplay playsinline style="width:100%;height:100%;max-height:100vh" poster="' + esc(mediaUrl(video.thumbnail)) + '"><source src="' + esc(playback) + '" type="' + (/\\.webm(?:$|\\?)/i.test(playback) ? "video/webm" : "video/mp4") + '"></video></body></html>');
+            } catch (error) {
+                console.error("[local-pages] embed render failed:", error.message);
+                return localOnly() ? res.status(500).send("Local catalog unavailable") : next();
             }
         });
     }
