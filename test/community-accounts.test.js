@@ -32,7 +32,7 @@ test("registration stores a salted password hash, unique email and persistent ac
     assert.equal(user.email,"retro@example.test");assert.ok(user.password_salt);assert.ok(user.password_hash);
     assert.equal(JSON.stringify(user).includes(registerBody.password),false);
     assert.equal(call("POST","/local-api/v1/accounts/register",{body:{...registerBody,username:"othername"}}).statusCode,409);
-    assert.equal(call("POST","/local-api/v1/accounts/register",{body:{...registerBody,username:"othername",email:"other@example.test"}}).statusCode,409);
+    assert.equal(call("POST","/local-api/v1/accounts/register",{body:{...registerBody,email:"other@example.test"}}).statusCode,409);
 });
 test("login checks password and accepts username or email",t=>{
     const {call}=harness(t);call("POST","/local-api/v1/accounts/register",{body:registerBody});
