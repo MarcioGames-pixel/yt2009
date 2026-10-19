@@ -203,10 +203,11 @@
 
     function mountLists() {
         var path = window.location.pathname;
-        var kind = path === "/my_favorites" || path === "/favorites" ? "favorites" :
-                   path === "/my_subscriptions" || path === "/subscriptions" ? "subscriptions" :
-                   path === "/watch_queue" ? "quicklist" :
-                   path === "/playlists" || path === "/my_playlists" ? "playlists" : "";
+        var normalizedPath = path.toLowerCase().replace(/\\/+$/, "") || "/";
+        var kind = ["/my_favorites", "/favorites", "/favorites.htm", "/my_favorites.htm"].includes(normalizedPath) ? "favorites" :
+                   ["/my_subscriptions", "/subscriptions", "/subscriptions.htm", "/my_subscriptions.htm"].includes(normalizedPath) ? "subscriptions" :
+                   ["/watch_queue", "/quicklist", "/quicklist.htm", "/watch_queue.htm"].includes(normalizedPath) ? "quicklist" :
+                   ["/playlists", "/my_playlists", "/playlists.htm", "/my_playlists.htm"].includes(normalizedPath) ? "playlists" : "";
         if (!kind || document.getElementById("yt2009-local-list-panel")) return;
         var base = document.getElementById("baseDiv") || document.querySelector("main") || document.body;
         var panel = element("section");
