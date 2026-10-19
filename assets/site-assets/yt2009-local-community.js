@@ -102,6 +102,11 @@
                 return request("/favorites", { method: "POST", body: JSON.stringify({ video_id: id }) });
             }).then(function () { status.textContent = "Added to this local profile's favorites."; });
         });
+        actionButton("Add to QuickList", function () {
+            return ensureSession().then(function () {
+                return request("/quicklist", { method: "POST", body: JSON.stringify({ video_id: id }) });
+            }).then(function () { status.textContent = "Added to the local QuickList."; });
+        });
         actionButton("Create playlist", function () {
             var name = window.prompt("Name your local playlist:");
             if (!name || !name.trim()) return;
@@ -195,6 +200,110 @@
             else status.textContent = "Signed in locally as " + r.user.display_name + ".";
         }).catch(function () {})]);
     }
-    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", mount);
-    else mount();
+
+    function mountLists() {
+        var path = window.location.pathname;
+        var kind = path === "/my_favorites" || path === "/favorites" ? "favorites" :
+                   path === "/my_subscriptions" || path === "/subscriptions" ? "subscriptions" :
+                   path === "/watch_queue" ? "quicklist" :
+                   path === "/playlists" || path === "/my_playlists" ? "playlists" : "";
+        if (!kind || document.getElementById("yt2009-local-list-panel")) return;
+        var base = document.getElementById("baseDiv") || document.querySelector("main") || document.body;
+        var panel = element("section");
+        panel.id = "yt2009-local-list-panel";
+        panel.style.cssText = "margin:12px 0;padding:10px;border:1px solid #ccc;background:#f7f7f7;color:#333;font:12px Arial,sans-serif";
+        var title = kind === "favorites" ? "Local Favorites" : kind === "subscriptions" ? "Local Subscriptions" : kind === "quicklist" ? "Local QuickList" : "Local Playlists";
+        var h = element("h2", title);
+        h.style.cssText = "font:bold 16px Arial,sans-serif;margin:0 0 8px";
+        panel.appendChild(h);
+        var status = element("div", "Loading local data…");
+        panel.appendChild(status);
+        var list = element("div");
+        panel.appendChild(list);
+        if (base.firstChild) base.insertBefore(panel, base.firstChild); else base.appendChild(panel);
+
+        function removeButton(label, fn) {
+            var b = element("button", label);
+            b.type = "button";
+            b.style.cssText = "margin-left:8px;padding:2px 6px;border:1px solid #aaa;background:#eee;cursor:pointer";
+            b.addEventListener("click", function () {
+                b.disabled = true;
+                Promise.resolve().then(fn).then(load).catch(function (e) {
+                    status.textContent = "Could not update list: " + e.message;
+                    b.disabled = false;
+                });
+            });
+            return b;
+        }
+        function row(label, href, removeFn) {
+            var item = element("div");
+            item.style.cssText = "padding:6px 0;border-top:1px solid #ddd;overflow-wrap:anywhere";
+            var a = element("a", label);
+            a.href = href;
+            a.style.cssText = "color:#03c;text-decoration:none;font-weight:bold";
+            item.appendChild(a);
+            if (removeFn) item.appendChild(removeButton("Remove", removeFn));
+            list.appendChild(item);
+        }
+        function load() {
+            while (list.firstChild) list.removeChild(list.firstChild);
+            var endpoint = kind === "playlists" ? "/playlists" : "/" + kind;
+            return request(endpoint).then(function (data) {
+                var items = kind === "playlists" ? (data.playlists || []) : (data.items || []);
+                status.textContent = items.length ? "Stored on this server for the current local profile." : "No local items yet. Open a video and use the local community controls.";
+                if (kind === "playlists") {
+                    items.forEach(function (playlist) {
+                        var wrapper = element("div");
+                        wrapper.style.cssText = "padding:8px 0;border-top:1px solid #ddd";
+                        var name = element("strong", playlist.name);
+                        wrapper.appendChild(name);
+                        wrapper.appendChild(removeButton("Delete playlist", function () {
+                            return request("/playlists/" + encodeURIComponent(playlist.id), { method: "DELETE" });
+                        }));
+                        (playlist.video_ids || []).forEach(function (id) {
+                            var link = element("div");
+                            link.style.cssText = "margin:5px 0 0 12px";
+                            var a = element("a", id);
+                            a.href = "/watch?v=" + encodeURIComponent(id);
+                            a.style.color = "#03c";
+                            link.appendChild(a);
+                            link.appendChild(removeButton("Remove video", function () {
+                                return request("/playlists/" + encodeURIComponent(playlist.id) + "/videos/" + encodeURIComponent(id), { method: "DELETE" });
+                            }));
+                            wrapper.appendChild(link);
+                        });
+                        list.appendChild(wrapper);
+                    });
+                    return;
+                }
+                items.forEach(function (id) {
+                    if (typeof id !== "string") return;
+                    if (kind === "subscriptions") {
+                        request("/channels/" + encodeURIComponent(id)).then(function (r) {
+                            row(r.channel.name, r.channel.url, function () {
+                                return request("/subscriptions/" + encodeURIComponent(id), { method: "DELETE" });
+                            });
+                        }).catch(function () { row(id, "/channel/" + encodeURIComponent(id), function () {
+                            return request("/subscriptions/" + encodeURIComponent(id), { method: "DELETE" });
+                        }); });
+                    } else {
+                        request("/videos/" + encodeURIComponent(id)).then(function (r) {
+                            row(r.video.title, "/watch?v=" + encodeURIComponent(id), function () {
+                                return request("/" + kind + "/" + encodeURIComponent(id), { method: "DELETE" });
+                            });
+                        }).catch(function () { row(id, "/watch?v=" + encodeURIComponent(id), function () {
+                            return request("/" + kind + "/" + encodeURIComponent(id), { method: "DELETE" });
+                        }); });
+                    }
+                });
+            }).catch(function (e) {
+                status.textContent = "Local list unavailable: " + e.message;
+            });
+        }
+        load();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", function () { mount(); mountLists(); });
+    } else { mount(); mountLists(); }
 })();
