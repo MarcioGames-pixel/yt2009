@@ -172,6 +172,7 @@ module.exports = { set(app, options) {
             return res.type("html").send(html);
         } catch (_) { return res.status(500).type("text").send("Profile unavailable"); }
     });
+    app.get("/local-account/reset", (req,res) => { res.type("html").send(fs.readFileSync(path.join(__dirname,"..","assets","site-assets","yt2009-local-reset.html"),"utf8")); });
     app.get("/local-account/verify", (req,res) => { res.redirect(302,"/local-api/v1/accounts/verify?token="+encodeURIComponent(String((req.query||{}).token||""))); });
     app.get("/local-account", (req,res) => {
         res.type("html").send(fs.readFileSync(path.join(__dirname,"..","assets","site-assets","yt2009-local-accounts.html"),"utf8"));
