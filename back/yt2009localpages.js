@@ -68,11 +68,13 @@ function homeHtml(videos, channels, title) {
             '<div style="font-weight:bold;margin-top:4px">' + esc(video.title) + '</div></a><div>' + esc(video.author) + '</div></div>';
     }).join("");
     const channelLinks = channels.map(ch => '<a href="' + esc(ch.url) + '" style="display:inline-block;margin:6px;padding:6px;border:1px solid #ccc;background:#f5f5f5">' + esc(ch.name) + '</a>').join("");
+    const showChannels = title !== "Videos";
+    const showVideos = title !== "Channels";
     return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YouTube - ' + esc(title) +
         '</title><link rel="stylesheet" href="/www-core-feather.css"><style>body{font:12px Arial,sans-serif;color:#333;background:#fff;margin:0}a{color:#03c}#masthead{padding:12px 20px;border-bottom:1px solid #ccc;background:#f4f4f4}#masthead a{font-size:18px;font-weight:bold;text-decoration:none}main{max-width:1000px;margin:18px auto;padding:0 12px}</style></head><body><div id="masthead"><a href="/">YouTube</a> &nbsp; <a href="/videos">Videos</a> &nbsp; <a href="/channels">Channels</a><form action="/results" method="get" style="float:right"><input name="search_query" maxlength="128"><button>Search</button></form></div><main><h1 style="font-size:22px">' + esc(title) + '</h1>' +
-        (channels.length ? '<section><h2 style="font-size:16px">Channels</h2>' + channelLinks + '</section>' : '') +
-        '<h2 style="font-size:16px;border-bottom:1px solid #ccc;padding-bottom:6px">Videos</h2>' +
-        (videoCards || '<p>The local catalog is empty. Configure local_api_key and add channel/video records using the documented local API.</p>') + '</main></body></html>';
+        (showChannels ? (channels.length ? '<section><h2 style="font-size:16px">Channels</h2>' + channelLinks + '</section>' : (title === "Channels" ? '<p>No local channels yet. Add channel records using the documented local API.</p>' : '')) : '') +
+        (showVideos ? '<h2 style="font-size:16px;border-bottom:1px solid #ccc;padding-bottom:6px">Videos</h2>' +
+        (videoCards || '<p>The local video catalog is empty. Add video records using the documented local API.</p>') : '') + '</main></body></html>';
 }
 
 function channelHtml(channel, videos) {
