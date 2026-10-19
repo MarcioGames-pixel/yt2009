@@ -49,6 +49,29 @@ module.exports = {
             query += " " + this.handle_only_old(flags)
         }
 
+        // Fully self-hosted mode: do not contact YouTube/Innertube or the Data API.
+        if (config.local_api_only === true) {
+            try {
+                const localApi = require("./yt2009localapi");
+                const offset = Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20);
+                let localResults = [];
+                if (params.search_type === "search_users") {
+                    localResults = localApi.searchChannels(query, 20);
+                } else if (params.search_type === "search_videos") {
+                    localResults = localApi.searchVideos(query, 20, offset).videos;
+                } else {
+                    const localVideos = localApi.searchVideos(query, 20, offset);
+                    localResults = localVideos.videos.concat(localApi.searchChannels(query, 20));
+                }
+                localResults.push({ type: "metadata", resultCount: localResults.length });
+                callback(localResults);
+            } catch (error) {
+                console.error("[local-api] local-only search failed:", error.message);
+                callback([{ type: "metadata", resultCount: 0 }]);
+            }
+            return;
+        }
+
         let useProto = false;
         let paramsMsg = new searchParams.SearchRequestParams()
         let filtersMsg = new searchParams.SearchRequestParams.Filter
