@@ -37,7 +37,10 @@ Keep the returned cookie for subsequent requests. This is not a verified account
 - `POST /local-api/v1/playlists` with JSON `{"name":"Favorites mix"}`
 - `POST /local-api/v1/playlists/:id/videos` with JSON `{"video_id":"VIDEO_ID"}`
 - `DELETE /local-api/v1/playlists/:id/videos/:video_id`
+- `DELETE /local-api/v1/playlists/:id`
 - `GET|POST /local-api/v1/favorites` (POST JSON `{"video_id":"VIDEO_ID"}`)
+- `GET|POST /local-api/v1/quicklist` (POST JSON `{"video_id":"VIDEO_ID"}`)
+- `DELETE /local-api/v1/quicklist/:item`
 - `DELETE /local-api/v1/favorites/:item`
 - `GET|POST /local-api/v1/subscriptions` (POST JSON `{"channel_id":"CHANNEL_ID"}`)
 - `DELETE /local-api/v1/subscriptions/:item`
