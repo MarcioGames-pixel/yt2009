@@ -203,7 +203,7 @@
 
     function mountLists() {
         var path = window.location.pathname;
-        var normalizedPath = path.toLowerCase().replace(/\\/+$/, "") || "/";
+        var normalizedPath = path.toLowerCase().replace(new RegExp("\\/+$"), "") || "/";
         var kind = ["/my_favorites", "/favorites", "/favorites.htm", "/my_favorites.htm"].includes(normalizedPath) ? "favorites" :
                    ["/my_subscriptions", "/subscriptions", "/subscriptions.htm", "/my_subscriptions.htm"].includes(normalizedPath) ? "subscriptions" :
                    ["/watch_queue", "/quicklist", "/quicklist.htm", "/watch_queue.htm"].includes(normalizedPath) ? "quicklist" :
