@@ -121,5 +121,37 @@ module.exports = {
                 res.status(500).json({ ok: false, error: "catalog_write_failed" });
             }
         });
+
+    },
+    searchVideos: function(query, limit, offset) {
+        const q = typeof query === "string" ? query.trim().toLowerCase().slice(0, 120) : "";
+        const safeLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
+        const videos = readCatalog().videos.filter(validVideo).filter(v => {
+            return !q || [v.title, v.description, v.author, ...(Array.isArray(v.tags) ? v.tags : [])]
+                .some(value => typeof value === "string" && value.toLowerCase().includes(q));
+        });
+        return {
+            total: videos.length,
+            videos: videos.slice(safeOffset, safeOffset + safeLimit).map(v => {
+                const p = publicVideo(v);
+                return {
+                    type: "video",
+                    id: p.id,
+                    title: p.title,
+                    views: "0 views",
+                    thumbnail: p.thumbnail || "/assets/site-assets/default.png",
+                    description: p.description,
+                    time: p.duration ? Math.floor(p.duration / 60) + ":" + String(p.duration % 60).padStart(2, "0") : "",
+                    author_name: p.author,
+                    author_url: "",
+                    author_handle: false,
+                    upload: p.published_at,
+                    verified: false,
+                    artist: false,
+                    local: true
+                };
+            })
+        };
     }
 };
