@@ -198,6 +198,11 @@ module.exports = {
         });
 
     },
+    getVideo: function(id) {
+        if (!ID_RE.test(id || "")) return null;
+        const video = readCatalog().videos.find(v => validVideo(v) && v.id === id);
+        return video ? publicVideo(video) : null;
+    },
     getChannel: function(id) {
         if (!ID_RE.test(id || "")) return null;
         const channel = readChannels().channels.find(ch => validChannel(ch) && ch.id === id);
