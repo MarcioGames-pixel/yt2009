@@ -112,15 +112,18 @@ module.exports = {
             }
         }
         app.get("/", function(req, res, next) {
-            if (!localOnly() || !utils.isAuthorized(req)) return next();
+            if (!localOnly()) return next();
+            if (!utils.isAuthorized(req)) return res.redirect("/unauth.htm");
             renderHome(req, res, "Home");
         });
         app.get("/videos", function(req, res, next) {
-            if (!localOnly() || !utils.isAuthorized(req)) return next();
+            if (!localOnly()) return next();
+            if (!utils.isAuthorized(req)) return res.redirect("/unauth.htm");
             renderHome(req, res, "Videos");
         });
         app.get("/channels", function(req, res, next) {
-            if (!localOnly() || !utils.isAuthorized(req)) return next();
+            if (!localOnly()) return next();
+            if (!utils.isAuthorized(req)) return res.redirect("/unauth.htm");
             renderHome(req, res, "Channels");
         });
         app.get("/watch", function(req, res, next) {
