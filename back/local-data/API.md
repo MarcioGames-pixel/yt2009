@@ -2,6 +2,17 @@
 
 This API is optional and keeps the legacy HTML/CSS and modules in place. It provides a self-hosted catalog and lightweight community data. To stop legacy search from contacting YouTube/Innertube or the Data API, set `local_api_only` to `true` in `back/config.json`. In that mode the Home, Videos, Channels, Search, local video watch pages, local channel pages, and embed pages use the local catalog. Unknown watch/channel/embed IDs return local 404 responses instead of falling through to legacy upstream handlers. Keep it `false` to preserve the original upstream search behavior when local results are absent.
 
+## Community accounts
+
+- Open `/local-account` to register or sign in.
+- `POST /local-api/v1/accounts/register` with JSON `{ "username": "retro_user", "password": "at-least-8-characters", "display_name": "Retro User" }`.
+- `POST /local-api/v1/accounts/login` with JSON `{ "username": "retro_user", "password": "at-least-8-characters" }`.
+- Usernames are normalized to lowercase and limited to 3–24 letters, digits, and underscores. Passwords must be 8–256 characters.
+- Passwords are stored as salted scrypt hashes, never as plaintext. Successful registration/login sets the existing HttpOnly `yt2009_local_session` cookie, so comments, ratings, favorites, playlists, subscriptions, and QuickList use that account identity.
+- Older guest profiles remain guest profiles; they are not automatically linked to a new account. Guest data is not merged into an account.
+
+These accounts are local to this server, not official YouTube/Google accounts. Use HTTPS when the server is exposed beyond a trusted local network, keep `back/local-data/community.json` private, and back up that file securely. Add rate limiting and account recovery before operating a public instance.
+
 ## Catalog
 
 - `GET /local-api/v1/status`
