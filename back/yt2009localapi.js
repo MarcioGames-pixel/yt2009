@@ -10,6 +10,7 @@ const path = require("path");
 const DATA_DIR = path.join(__dirname, "local-data");
 const CATALOG_FILE = path.join(DATA_DIR, "videos.json");
 const CHANNELS_FILE = path.join(DATA_DIR, "channels.json");
+const MEDIA_DIR = path.join(DATA_DIR, "media");
 const ID_RE = /^[A-Za-z0-9_-]{1,80}$/;
 
 function ensureCatalog() {
@@ -80,6 +81,22 @@ function publicVideo(video) {
 
 module.exports = {
     set: function(app, config) {
+        // Serve operator-provided local media. Filenames are restricted to prevent traversal.
+        app.get("/local-media/:filename", (req, res) => {
+            const filename = req.params.filename || "";
+            if (path.basename(filename) !== filename || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,119}\\.(mp4|webm)$/i.test(filename)) {
+                return res.status(400).send("Invalid media filename");
+            }
+            const file = path.join(MEDIA_DIR, filename);
+            if (!file.startsWith(MEDIA_DIR + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) {
+                return res.sendStatus(404);
+            }
+            res.type(/\\.webm$/i.test(filename) ? "video/webm" : "video/mp4");
+            res.sendFile(file, error => {
+                if (error && !res.headersSent) res.sendStatus(error.statusCode || 404);
+            });
+        });
+
         app.get("/local-api/v1/status", (req, res) => {
             res.json({ ok: true, service: "yt2009-local-api", version: 1, provider: "local" });
         });
