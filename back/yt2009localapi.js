@@ -198,6 +198,12 @@ module.exports = {
         });
 
     },
+    getVideos: function(limit, offset) {
+        const safeLimit = Math.min(100, Math.max(1, parseInt(limit, 10) || 30));
+        const safeOffset = Math.max(0, parseInt(offset, 10) || 0);
+        const videos = readCatalog().videos.filter(validVideo);
+        return { total: videos.length, videos: videos.slice(safeOffset, safeOffset + safeLimit).map(publicVideo) };
+    },
     getVideo: function(id) {
         if (!ID_RE.test(id || "")) return null;
         const video = readCatalog().videos.find(v => validVideo(v) && v.id === id);
