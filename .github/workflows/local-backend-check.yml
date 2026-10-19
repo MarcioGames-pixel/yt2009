@@ -22,6 +22,7 @@ jobs:
           node --check back/yt2009localapi.js
           node --check back/yt2009communityapi.js
           node --check back/yt2009accounts.js
+          node --check back/yt2009mail.js
           node --check back/yt2009localpages.js
           node --check back/yt2009search.js
           node --check back/backend.js
