@@ -300,7 +300,23 @@ module.exports = {
                 } else {
                     returnResults()
                 }
-            })))
+            }))).catch(error => {
+                // If the remote service is unavailable, search the self-hosted catalog
+                // and keep the existing legacy search page/rendering intact.
+                try {
+                    const local = require("./yt2009localapi").searchVideos(
+                        query,
+                        20,
+                        Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20)
+                    );
+                    const localResults = local.videos;
+                    localResults.push({ type: "metadata", resultCount: local.total });
+                    callback(localResults);
+                } catch (localError) {
+                    console.error("[local-api] search fallback failed:", localError.message);
+                    callback([]);
+                }
+            })
         }
     },
 
