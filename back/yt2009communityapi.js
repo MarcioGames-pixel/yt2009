@@ -21,8 +21,15 @@ function readData() {
     if (!fs.existsSync(FILE)) fs.writeFileSync(FILE, JSON.stringify(freshData(), null, 2));
     let data = JSON.parse(fs.readFileSync(FILE, "utf8"));
     if (!data || typeof data !== "object") throw new Error("Invalid community data");
-    for (const key of ["users", "comments", "ratings", "playlists"]) {
+    // Migrate older community files safely when new features are introduced.
+    for (const key of ["users", "comments", "ratings", "playlists", "favorites", "subscriptions", "quicklist"]) {
         if (!data[key] || typeof data[key] !== "object" || Array.isArray(data[key])) data[key] = {};
+    }
+    // Keep malformed records from breaking list rendering or owner checks.
+    for (const key of ["favorites", "subscriptions", "quicklist"]) {
+        for (const owner of Object.keys(data[key])) {
+            if (!Array.isArray(data[key][owner])) data[key][owner] = [];
+        }
     }
     return data;
 }
@@ -129,6 +136,8 @@ module.exports = {
             const list = ensureList(data.comments, req.params.id);
             const comment = { id: crypto.randomBytes(12).toString("hex"), author: s.user.display_name, text, created_at: new Date().toISOString() };
             list.push(comment);
+            // Bound per-video storage so an unattended public instance cannot grow forever.
+            if (list.length > 1000) list.splice(0, list.length - 1000);
             try { writeData(data); } catch (_) { return res.status(500).json({ ok: false, error: "community_write_failed" }); }
             res.status(201).json({ ok: true, comment });
         });
