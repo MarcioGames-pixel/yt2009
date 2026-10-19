@@ -72,6 +72,31 @@ module.exports = {
             return;
         }
 
+        // Prefer the self-hosted catalog whenever it contains matching data.
+        // This avoids contacting upstream APIs for locally managed content.
+        if (config.local_api_only !== true) {
+            try {
+                const localApi = require("./yt2009localapi");
+                const offset = Math.max(0, ((parseInt(params.page, 10) || 1) - 1) * 20);
+                let localResults = [];
+                if (params.search_type === "search_users") {
+                    localResults = localApi.searchChannels(query, 20);
+                } else if (params.search_type === "search_videos") {
+                    localResults = localApi.searchVideos(query, 20, offset).videos;
+                } else {
+                    const localVideos = localApi.searchVideos(query, 20, offset);
+                    localResults = localVideos.videos.concat(localApi.searchChannels(query, 20));
+                }
+                if (localResults.length) {
+                    localResults.push({ type: "metadata", resultCount: localResults.length });
+                    callback(localResults);
+                    return;
+                }
+            } catch (error) {
+                console.error("[local-api] local-first search failed:", error.message);
+            }
+        }
+
         let useProto = false;
         let paramsMsg = new searchParams.SearchRequestParams()
         let filtersMsg = new searchParams.SearchRequestParams.Filter
