@@ -7,13 +7,14 @@ This API is optional and keeps the legacy HTML/CSS and modules in place. It prov
 - `GET /local-api/v1/status`
 - `GET /local-api/v1/videos?q=term&limit=20&offset=0`
 - `GET /local-api/v1/videos/:id`
+- `GET /local-media/:filename` — serves operator-provided MP4/WebM files from `back/local-data/media/`
 - `GET /local-api/v1/channels?q=term`
 - `GET /local-api/v1/channels/:id`
 - `GET /local-api/v1/channels/:id/videos`
 - `POST /local-api/v1/channels` — same `local_api_key` requirement as video writes
 - `POST /local-api/v1/videos` — disabled until `local_api_key` is configured in the server config with at least 24 characters. Send the key in `x-local-api-key`.
 
-Catalog video records accept `id`, `title`, `description`, `author`, `channel_id`, `thumbnail`, `playback_url`, `duration`, `published_at`, and `tags`. Channel records accept `id`, `name`, `description`, `avatar`, `banner`, and `subscribers`. Use a real reachable `playback_url` for playable media; this catalog does not download or host video files automatically.
+Catalog video records accept `id`, `title`, `description`, `author`, `channel_id`, `thumbnail`, `playback_url`, `duration`, `published_at`, and `tags`. Channel records accept `id`, `name`, `description`, `avatar`, `banner`, and `subscribers`. Use `playback_url: "/local-media/demo.mp4"` after placing an operator-owned file at `back/local-data/media/demo.mp4`, or provide another reachable HTTP(S) media URL. Local media files are served directly by this instance; no official YouTube API is involved in their playback.
 
 ## Anonymous local profile and community
 
