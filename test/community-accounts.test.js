@@ -73,3 +73,16 @@ test("registration fails closed when email cannot be sent",async t=>{
     const saved=JSON.parse(fs.readFileSync(path.join(root,"back","local-data","community.json"),"utf8"));
     assert.equal(Object.keys(saved.users).length,0);
 });
+
+test("verified accounts can request a one-time password reset",async t=>{
+    const {call,sentTokens}=harness(t);
+    await call("POST","/local-api/v1/accounts/register",{body:registerBody});
+    await call("GET","/local-api/v1/accounts/verify",{query:{token:sentTokens.get("retro@example.test")}});
+    const request=await call("POST","/local-api/v1/accounts/forgot-password",{body:{email:"retro@example.test"}});
+    assert.equal(request.statusCode,200);
+    const token=sentTokens.get("retro@example.test");assert.match(token,/^[a-f0-9]{64}$/);
+    assert.equal((await call("POST","/local-api/v1/accounts/reset-password",{body:{token,password:"new-password-456"}})).statusCode,200);
+    assert.equal((await call("POST","/local-api/v1/accounts/reset-password",{body:{token,password:"another-password"}})).statusCode,400);
+    assert.equal((await call("POST","/local-api/v1/accounts/login",{body:{username:"retro_user",password:"test-password-123"}})).statusCode,401);
+    assert.equal((await call("POST","/local-api/v1/accounts/login",{body:{username:"retro_user",password:"new-password-456"}})).statusCode,200);
+});
