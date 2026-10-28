@@ -10,9 +10,8 @@
   },
   "keywords": [
     "2009",
-    "frontend",
-    "youtube",
-    "yt2009"
+    "yt2009",
+    "youtube"
   ],
   "dependencies": {
     "express": "^4.21.2",
