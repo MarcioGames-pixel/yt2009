@@ -1,6 +1,5 @@
 "use strict";
 
-const { Resend } = require("resend");
 
 async function sendMail(options, message) {
     options = options || {};
@@ -14,6 +13,8 @@ async function sendMail(options, message) {
     if (!from || /[\r\n]/.test(from)) throw new Error("Invalid Resend sender");
     if (!to || /[\r\n]/.test(to)) throw new Error("Invalid Resend recipient");
 
+    // Load the SDK only when an email is actually sent. This keeps account-route tests and installations that have not configured mail independent of the provider package at import time.
+    const { Resend } = require("resend");
     const resend = new Resend(apiKey);
     const result = await resend.emails.send({
         from,
