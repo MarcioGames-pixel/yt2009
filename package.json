@@ -6,13 +6,12 @@
   "scripts": {
     "start": "cd back && node backend",
     "start_wrap": "cd back && node backend_wrap",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test test/*.test.js"
   },
   "keywords": [
     "2009",
-    "youtube",
     "yt2009",
-    "frontend"
+    "youtube"
   ],
   "dependencies": {
     "express": "^4.21.2",
@@ -21,6 +20,7 @@
     "node-fetch": "^2.6.7",
     "node-html-parser": "5.3.3",
     "readline-sync": "^1.4.10",
+    "resend": "^4.7.0",
     "ws": ">=5.2.5"
   },
   "author": "dxegom",

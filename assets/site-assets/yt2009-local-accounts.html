@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YouTube - Create Your Account</title>
+<link rel="stylesheet" href="/assets/site-assets/signin-css.css">
+<link rel="stylesheet" href="/assets/site-assets/search-suggestions.css">
+<style>
+#local-account-content{width:900px;max-width:96%;margin:18px auto;color:#333;font:13px Arial,sans-serif}
+.local-title{font-size:19px;font-weight:bold;padding:6px 0;border-bottom:1px solid #999;margin-bottom:16px}
+.local-intro{font-size:13px;line-height:1.55;padding:8px 18px 8px 4px}
+.local-box{background:#e8eefa;border:1px solid #c3d9ff;padding:12px;margin:0 0 12px}
+.local-box h2{font-size:15px;margin:0 0 12px;color:#333}
+.local-box label{display:block;font-size:12px;font-weight:bold;margin:10px 0 4px}
+.local-box input,.local-box textarea{box-sizing:border-box;max-width:100%;padding:5px;border:1px solid #7f9db9;font:13px Arial,sans-serif}
+.local-box input[type=text],.local-box input[type=email],.local-box input[type=password]{width:260px}
+.local-box textarea{width:100%;max-width:360px}
+.local-box button,.local-action{font: bold 12px Arial,sans-serif;padding:5px 12px;color:#039;background:#d8e4f8;border:1px solid #9aadd0;cursor:pointer}
+.local-box button:disabled{opacity:.55}
+.local-help{font-size:11px;color:#666;font-weight:normal}
+#local-status{padding:7px 4px;color:#333;overflow-wrap:anywhere;min-height:18px}
+.local-hidden{display:none!important}
+.local-footer{border-top:1px solid #ccc;text-align:center;color:#666;font-size:11px;padding:12px;margin-top:28px}
+.local-profile{background:#f7f7f7;border:1px solid #ccc;padding:14px;max-width:560px}
+.local-links{font-size:12px;margin-top:12px}
+.local-links a{margin-right:12px}
+@media(max-width:650px){#main{width:100%!important}.local-box input[type=text],.local-box input[type=email],.local-box input[type=password]{width:100%}#local-account-content{max-width:94%}}
+</style>
+</head>
+<body>
+<div id="main">
+  <div id="masthead-container">
+    <div id="masthead">
+      <a href="/" class="logo"><img src="/assets/site-assets/pixel-vfl73.gif" alt="YouTube" border="0"></a>
+      <div id="masthead-main">
+        <div id="masthead-search">
+          <form class="search-form" action="/results" method="get" name="searchForm">
+            <div class="search-wrapper">
+              <input id="masthead-search-term" class="search-term" name="search_query" type="text" tabindex="1" maxlength="128">
+              <input name="search_type" type="hidden" value="">
+              <a class="yt-button yt-button-primary" href="#" onclick="document.searchForm.submit();return false"><span>Search</span></a>
+            </div>
+          </form>
+        </div>
+        <div id="masthead-nav-main"><a href="/">Home</a><a href="/videos">Videos</a><a href="/channels">Channels</a></div>
+      </div>
+      <div style="float:right;text-align:right;font-size:12px;padding-top:8px"><a href="/local-account">Sign in</a> | <a href="/local-account">Create account</a></div>
+      <div style="clear:both"></div>
+    </div>
+  </div>
+  <div id="local-account-content">
+    <div class="local-title">Sign up for YouTube!</div>
+    <div id="local-status" role="status" aria-live="polite">Create a yt2009 community account to comment, rate videos, save favorites and manage playlists on this server.</div>
+    <div id="local-auth" class="local-auth">
+      <table width="100%" cellspacing="0" cellpadding="8" border="0"><tbody><tr>
+        <td width="53%" valign="top">
+          <div class="local-intro">
+            <b>Join the yt2009 video community!</b><br><br>
+            Create your own account on this independent yt2009 server:
+            <ul>
+              <li>Choose a username and public display name</li>
+              <li>Comment on and rate videos</li>
+              <li>Save favorites and create playlists</li>
+              <li>Build your own channel profile</li>
+            </ul>
+            <p class="local-help">A verification email is required before you can sign in. Your account is stored by this server, not by Google or YouTube.</p>
+          </div>
+        </td>
+        <td width="47%" valign="top">
+          <section class="local-box">
+            <h2>Create your account</h2>
+            <form id="register">
+              <label for="reg-name">Display name</label>
+              <input id="reg-name" name="display_name" type="text" maxlength="32" autocomplete="nickname">
+              <label for="reg-user">Username <span class="local-help">(3–24 letters, numbers or _)</span></label>
+              <input id="reg-user" name="username" type="text" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" autocomplete="username" required>
+              <label for="reg-email">Email address</label>
+              <input id="reg-email" name="email" type="email" maxlength="254" autocomplete="email" required>
+              <label for="reg-pass">Password <span class="local-help">(8–256 characters)</span></label>
+              <input id="reg-pass" name="password" type="password" minlength="8" maxlength="256" autocomplete="new-password" required>
+              <div style="margin-top:13px"><button type="submit">Create account</button></div>
+            </form>
+          </section>
+          <section class="local-box">
+            <h2>Already have an account?</h2>
+            <form id="login">
+              <label for="login-user">Username or email</label>
+              <input id="login-user" name="username" type="text" maxlength="254" autocomplete="username" required>
+              <label for="login-pass">Password</label>
+              <input id="login-pass" name="password" type="password" maxlength="256" autocomplete="current-password" required>
+              <div style="margin-top:13px"><button type="submit">Sign in</button></div>
+            </form>
+          </section>
+        </td>
+      </tr></tbody></table>
+      <section class="local-box" style="max-width:560px;margin:10px auto">
+        <h2>Email assistance</h2>
+        <form id="resend">
+          <label for="help-email">Didn't receive the verification email?</label>
+          <input id="help-email" type="email" maxlength="254" required>
+          <button type="submit">Resend verification email</button>
+        </form>
+        <hr>
+        <form id="forgot">
+          <label for="forgot-email">Forgot your password? Enter your verified email address.</label>
+          <input id="forgot-email" type="email" maxlength="254" required>
+          <button type="submit">Send password reset link</button>
+        </form>
+      </section>
+    </div>
+    <section id="profile-panel" class="local-profile local-hidden">
+      <h2>Your account</h2>
+      <p id="signed-in"></p>
+      <form id="profile-form">
+        <label for="profile-name">Display name</label><br><input id="profile-name" name="display_name" type="text" maxlength="32" required>
+        <br><label for="profile-bio">About you</label><br><textarea id="profile-bio" rows="4" maxlength="500"></textarea>
+        <br><label for="profile-avatar">Avatar URL (HTTPS or local path)</label><br><input id="profile-avatar" type="text" maxlength="500" placeholder="/local-media/avatar.png">
+        <br><button type="submit">Save profile</button>
+      </form>
+      <p><a id="public-profile" href="#">View your channel</a></p>
+      <button id="logout" type="button">Sign out</button>
+    </section>
+    <div class="local-links"><a href="/">Back to YouTube</a> · <a href="/local-account">Account help</a></div>
+  </div>
+  <div class="local-footer">© 2009 YouTube, LLC · yt2009 independent community service</div>
+</div>
+<script>
+(function(){"use strict";
+var status=document.getElementById("local-status"),auth=document.getElementById("local-auth"),profilePanel=document.getElementById("profile-panel");
+function api(path,method,values){return fetch("/local-api/v1"+path,{method:method||"GET",credentials:"same-origin",headers:values?{"Content-Type":"application/json"}:{},body:values?JSON.stringify(values):undefined}).then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||"request_failed");return d;});});}
+function showMessage(err,prefix){status.textContent=prefix+(err&&err.message?err.message.replace(/_/g," "):"unknown error");}
+function showUser(user){auth.classList.add("local-hidden");profilePanel.classList.remove("local-hidden");document.getElementById("signed-in").textContent="Signed in as "+user.display_name+" (@"+(user.username||"guest")+").";document.getElementById("profile-name").value=user.display_name||"";document.getElementById("profile-bio").value=user.bio||"";document.getElementById("profile-avatar").value=user.avatar_url||"";document.getElementById("public-profile").href="/u/"+encodeURIComponent(user.username||"");status.textContent=user.account?"Your account is ready.":"You are using a guest profile.";}
+function submit(form,kind){form.addEventListener("submit",function(e){e.preventDefault();var button=form.querySelector("button");button.disabled=true;status.textContent="Please wait...";var values={};new FormData(form).forEach(function(v,k){values[k]=v;});api("/accounts/"+kind,"POST",values).then(function(d){if(kind==="register"){status.textContent=d.notice||"Account created. Check your email.";return;}return api("/accounts/me").then(function(me){showUser(me.user);});}).catch(function(err){showMessage(err,kind==="login"?"Could not sign in: ":"Could not create account: ");}).then(function(){button.disabled=false;});});}
+submit(document.getElementById("login"),"login");submit(document.getElementById("register"),"register");
+function helperForm(id,endpoint,emailId){document.getElementById(id).addEventListener("submit",function(e){e.preventDefault();var button=this.querySelector("button");button.disabled=true;api(endpoint,"POST",{email:document.getElementById(emailId).value}).then(function(d){status.textContent=d.notice||"Request processed.";}).catch(function(err){showMessage(err,"Request failed: ");}).then(function(){button.disabled=false;});});}
+helperForm("resend","/accounts/resend-verification","help-email");helperForm("forgot","/accounts/forgot-password","forgot-email");
+document.getElementById("profile-form").addEventListener("submit",function(e){e.preventDefault();var button=this.querySelector("button");button.disabled=true;api("/accounts/me","PATCH",{display_name:document.getElementById("profile-name").value,bio:document.getElementById("profile-bio").value,avatar_url:document.getElementById("profile-avatar").value}).then(function(d){showUser(d.user);status.textContent="Profile saved.";}).catch(function(err){showMessage(err,"Could not save profile: ");}).then(function(){button.disabled=false;});});
+document.getElementById("logout").addEventListener("click",function(){api("/accounts/logout","POST",{}).then(function(){profilePanel.classList.add("local-hidden");auth.classList.remove("local-hidden");status.textContent="Signed out.";}).catch(function(err){showMessage(err,"Could not sign out: ");});});
+api("/accounts/me").then(function(d){showUser(d.user);}).catch(function(){});
+})();
+</script>
+</body>
+</html>
