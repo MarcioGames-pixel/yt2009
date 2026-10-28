@@ -45,14 +45,23 @@ function fail(res, status, error) { return res.status(status).json({ok:false,err
 function findUser(data, name) { return Object.entries(data.users).find(([,u]) => u && u.username === name); }
 function current(req, data) { const id = cookieValue(req); return id && data.users[id] ? {id,user:data.users[id]} : null; }
 function validImageUrl(value) { return typeof value === "string" && value.length <= 500 && (/^https:\/\//i.test(value) || /^\/(?!\/)/.test(value)); }
+function escapeHtml(value) {
+    return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
 module.exports = { set(app, options) {
     options = options || {};
     const mailer = options && options.sendVerificationEmail || (async (email, token, purpose) => {
-        const host = process.env.YT2009_SMTP_HOST;
-        const from = process.env.YT2009_SMTP_FROM || process.env.YT2009_SMTP_USER;
-        if (!host || !from) throw new Error("SMTP is not configured");
+        const apiKey = process.env.RESEND_API_KEY;
+        const from = process.env.YT2009_MAIL_FROM || process.env.YT2009_SMTP_FROM;
+        if (!apiKey || !from) throw new Error("Resend is not configured");
         const base = String(process.env.YT2009_PUBLIC_URL || "http://localhost:8080").replace(/\/$/, "");
-        await sendMail({host,port:Number(process.env.YT2009_SMTP_PORT || 465),secure:process.env.YT2009_SMTP_SECURE !== "false",user:process.env.YT2009_SMTP_USER || "",password:process.env.YT2009_SMTP_PASSWORD || "",from},{to:email,subject:"Verify your yt2009 account",text:(purpose === "reset" ? "Reset your yt2009 password: " + base + "/local-account/reset?token=" + token : "Verify your yt2009 email: " + base + "/local-account/verify?token=" + token) + "\nThis link expires in 30 minutes."});
+        const isReset = purpose === "reset";
+        const actionUrl = base + (isReset ? "/local-account/reset?token=" : "/local-account/verify?token=") + encodeURIComponent(token);
+        const safeUrl = escapeHtml(actionUrl);
+        const action = isReset ? "Reset your yt2009 password" : "Verify your yt2009 email address";
+        const text = action + ": " + actionUrl + "\nThis link expires in 30 minutes.";
+        const html = '<!doctype html><html><body style="font-family:Arial,sans-serif;color:#333"><h2>yt2009</h2><p>' + escapeHtml(action) + '.</p><p><a href="' + safeUrl + '">' + escapeHtml(isReset ? "Reset password" : "Verify email address") + '</a></p><p>If the link does not open, copy this address:</p><p>' + safeUrl + '</p><p>This link expires in 30 minutes.</p></body></html>';
+        await sendMail({apiKey,from},{to:email,subject:isReset ? "Reset your yt2009 password" : "Verify your yt2009 account",text,html});
     });
     app.post("/local-api/v1/accounts/register", async (req,res) => {
         const b=body(req), username=typeof b.username==="string"?b.username.trim().toLowerCase():"", password=typeof b.password==="string"?b.password:"", email=typeof b.email==="string"?b.email.trim().toLowerCase():"", display=typeof b.display_name==="string"?b.display_name.trim().slice(0,32):"";
@@ -66,7 +75,7 @@ module.exports = { set(app, options) {
             const id=crypto.randomBytes(24).toString("hex"), salt=crypto.randomBytes(16).toString("hex"), token=crypto.randomBytes(32).toString("hex");
             data.users[id]={username,email,display_name:display||username,bio:"",avatar_url:"",created_at:new Date().toISOString(),password_salt:salt,password_hash:crypto.scryptSync(password,salt,64).toString("hex"),account_version:1,email_verified:false,verification_required:true,verification_token_hash:crypto.createHash("sha256").update(token).digest("hex"),verification_expires_at:Date.now()+1800000,verification_last_sent_at:Date.now()};
             writeData(data);
-            try { await mailer(email,token); } catch (_) { delete data.users[id]; writeData(data); return fail(res,503,"verification_email_unavailable_check_smtp_configuration"); }
+            try { await mailer(email,token); } catch (_) { delete data.users[id]; writeData(data); return fail(res,503,"verification_email_unavailable_check_resend_configuration"); }
             return res.status(201).json({ok:true,verification_required:true,notice:"Account created. Check your email and verify it before signing in."});
         } catch (_) { return fail(res,500,"account_storage_unavailable"); }
     });
@@ -89,7 +98,7 @@ module.exports = { set(app, options) {
                 if(now-(user.verification_last_sent_at||0)>=60000) {
                     const token=crypto.randomBytes(32).toString("hex");
                     user.verification_token_hash=crypto.createHash("sha256").update(token).digest("hex"); user.verification_expires_at=now+1800000; user.verification_last_sent_at=now; data.users[id]=user; writeData(data);
-                    try { await mailer(email,token); } catch (_) { return fail(res,503,"verification_email_unavailable_check_smtp_configuration"); }
+                    try { await mailer(email,token); } catch (_) { return fail(res,503,"verification_email_unavailable_check_resend_configuration"); }
                 }
             }
             return res.json({ok:true,notice:"If the account needs verification, an email will be sent when the server permits it."});
